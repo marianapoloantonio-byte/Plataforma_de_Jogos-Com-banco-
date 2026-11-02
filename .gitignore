@@ -1,0 +1,12 @@
+
+# Arquivos gerados pelo projeto
+bin/
+obj/
+
+# Arquivos do Visual Studio
+.vs/
+*.user
+*.suo
+
+# Arquivos temporários
+*.log
