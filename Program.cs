@@ -17,6 +17,27 @@ builder.Services.AddOpenApi();
 
 var app = builder.Build();
 
+// ---------- CATEGORIAS FIXAS ----------
+
+using (var scope = app.Services.CreateScope())
+{
+    var context = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+
+     // Atualiza o banco de dados
+    context.Database.Migrate();
+
+    if (!context.Categorias.Any())
+    {
+        context.Categorias.AddRange(
+            new Categoria { Nome = "Fantasia Sombria" },
+            new Categoria { Nome = "Pós-apocalíptico" },
+            new Categoria { Nome = "Aventura" }
+        );
+
+        context.SaveChanges();
+    }
+}
+
 // Configure the HTTP request pipeline.
 if (app.Environment.IsDevelopment())
 {
@@ -52,33 +73,6 @@ app.MapGet("/categorias/{id}", (int id, AppDbContext context) =>
     return Results.Ok(categoria);
 });
 
-// Atualizar uma categoria
-app.MapPut("/categorias/{id}", (int id, Categoria dados, AppDbContext context) =>
-{
-    var categoria = context.Categorias.Find(id);
 
-    if (categoria == null)
-        return Results.NotFound();
-
-    categoria.Nome = dados.Nome;
-
-    context.SaveChanges();
-
-    return Results.Ok(categoria);
-});
-
-// Excluir uma categoria
-app.MapDelete("/categorias/{id}", (int id, AppDbContext context) =>
-{
-    var categoria = context.Categorias.Find(id);
-
-    if (categoria == null)
-        return Results.NotFound();
-
-    context.Categorias.Remove(categoria);
-    context.SaveChanges();
-
-    return Results.Ok();
-});
 
 app.Run();
