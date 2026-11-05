@@ -36,6 +36,22 @@ using (var scope = app.Services.CreateScope())
 
         context.SaveChanges();
     }
+    // ---------- JOGOS FIXOS ----------
+
+if (!context.Jogos.Any())
+{
+    var fantasia = context.Categorias.First(c => c.Nome == "Fantasia Sombria");
+    var posApocaliptico = context.Categorias.First(c => c.Nome == "Pós-apocalíptico");
+    var aventura = context.Categorias.First(c => c.Nome == "Aventura");
+
+    context.Jogos.AddRange(
+        new Jogo { Nome = "A Plague Tale", Preco = 139.90, CategoriaId = fantasia.Id },
+        new Jogo { Nome = "The Last of Us", Preco = 199.90, CategoriaId = posApocaliptico.Id },
+        new Jogo { Nome = "Tomb Raider", Preco = 124.90, CategoriaId = aventura.Id }
+    );
+
+    context.SaveChanges();
+}
 }
 
 // Configure the HTTP request pipeline.
@@ -72,7 +88,33 @@ app.MapGet("/categorias/{id}", (int id, AppDbContext context) =>
 
     return Results.Ok(categoria);
 });
+// ---------- JOGOS ----------
 
+// Listar todos os jogos
+app.MapGet("/jogos", (AppDbContext context) =>
+{
+    var jogos = context.Jogos
+        .Select(j => new
+        {
+            j.Id,
+            j.Nome,
+            j.Preco,
+            Categoria = j.Categoria!.Nome
+        })
+        .ToList();
+
+    return Results.Ok(jogos);
+});
+// Buscar jogo pelo ID
+app.MapGet("/jogos/{id}", (int id, AppDbContext context) =>
+{
+    var jogo = context.Jogos.Find(id);
+
+    if (jogo == null)
+        return Results.NotFound();
+
+    return Results.Ok(jogo);
+});
 
 
 app.Run();
