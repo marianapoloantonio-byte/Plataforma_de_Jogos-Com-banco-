@@ -1,4 +1,4 @@
-# 🎮 Plataforma de Jogos API
+#  Plataforma de Jogos API
 
 ## Sobre o projeto
 
