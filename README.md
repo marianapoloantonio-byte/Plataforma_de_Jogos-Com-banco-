@@ -120,8 +120,8 @@ As requisições podem ser realizadas utilizando o Postman. Para isso, basta sel
 
 ```json
 {
-    "nome": "Ana",
-    "email": "ana@email.com",
+    "nome": "Violet",
+    "email": "Violet@email.com",
     "senha": "123456"
 }
 ```
