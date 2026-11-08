@@ -179,6 +179,13 @@ app.MapDelete("/jogos/{id}", (int id, AppDbContext context) =>
         return Results.NotFound("Jogo não encontrado!");
     }
 
+    //Se o jogo ja foi comprado por algum usuario, nao permite excluir
+    var compraExistente = context.Compras.Any(c => c.JogoId == id);
+    if (compraExistente)
+    {
+        return Results.BadRequest("Não é possível remover um jogo que já foi comprado!");
+    }
+
     context.Jogos.Remove(jogo);
     context.SaveChanges();
 
@@ -273,6 +280,13 @@ app.MapDelete("/usuarios/{id}", (int id, AppDbContext context) =>
         return Results.NotFound("Usuário não encontrado!");
     }
 
+    //Nao permite excluir usuario que ja comprou algum jogo
+    var compraExistente = context.Compras.Any(c => c.UsuarioId == id);
+    if (compraExistente)
+    {
+        return Results.BadRequest("Não é possível remover um usuário que já realizou compras!");
+    }
+
     context.Usuarios.Remove(usuario);
     context.SaveChanges();
 
@@ -281,6 +295,102 @@ app.MapDelete("/usuarios/{id}", (int id, AppDbContext context) =>
 
 
 // ====================================== COMPRAS =========================================
+
+// Realizar uma compra
+app.MapPost("/compras", (Compra compra, AppDbContext context) =>
+{
+    var usuario = context.Usuarios.Find(compra.UsuarioId); //Procura usuario
+ 
+    if (usuario == null) //se o usuario nao existir, retorna um erro
+    {
+        return Results.NotFound("Usuário não encontrado!");
+    }
+
+    var jogo = context.Jogos.Find(compra.JogoId); //Procura o jogo
+
+    if (jogo == null) //se o jogo nao existir, retorna erro
+    {
+        return Results.NotFound("Jogo não encontrado!");
+    }
+
+    //Verifica se o usuario ja comprou aquele jogo
+    var compraExistente = context.Compras.Any(c =>
+        c.UsuarioId == compra.UsuarioId && c.JogoId == compra.JogoId);
+
+    if (compraExistente)
+    {
+        return Results.BadRequest("Usuário já possui esse jogo!");
+    }
+
+
+    double valorPago = jogo.Preco;
+
+    if (jogo.Preco > 100) //Aplica o desconto
+    {
+        valorPago = jogo.Preco * 0.90;
+    }
+
+    //Cria a nova compra
+    var novaCompra = new Compra
+    {
+        UsuarioId = usuario.Id,
+        JogoId = jogo.Id,
+        ValorPago = valorPago
+    };
+
+    //Adiciona a compra no banco
+    context.Compras.Add(novaCompra);
+    context.SaveChanges();
+
+    return Results.Created($"/compras/{novaCompra.Id}", new
+    {
+        novaCompra.Id,
+        Usuario = usuario.Nome,
+        Jogo = jogo.Nome,
+        ValorOriginal = jogo.Preco,
+        ValorPago = novaCompra.ValorPago
+    });
+});
+
+// Listar todas as compras
+app.MapGet("/compras", (AppDbContext context) =>
+{
+    var compras = context.Compras
+        .Select(c => new
+        {
+            c.Id,
+            Usuario = c.Usuario!.Nome, //retorna o nome do usuario que realizou a compra
+            Jogo = c.Jogo!.Nome, //retorna o nome do jogo que realizou a compra
+            c.ValorPago
+        })
+        .ToList();
+
+    return Results.Ok(compras);
+});
+
+// Consultar biblioteca do usuário
+app.MapGet("/usuarios/{id}/biblioteca", (int id, AppDbContext context) =>
+{
+    var usuario = context.Usuarios.Find(id); //procura usuario pelo Id
+
+    if (usuario == null)
+    {
+        return Results.NotFound("Usuário não encontrado!");
+    }
+
+    var biblioteca = context.Compras //busca as compras feitas por esse usuario
+        .Where(c => c.UsuarioId == id)
+        .Select(c => new
+        {
+            c.Jogo!.Id,
+            c.Jogo.Nome,
+            c.Jogo.Preco,
+            c.ValorPago
+        })
+        .ToList();
+
+    return Results.Ok(biblioteca); //retorna a biblioteca
+});
 
 
 app.Run();
